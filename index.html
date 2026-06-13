@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Human Breathing Mechanism</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f7f5f0;
+  --bg2: #edeae2;
+  --card: #ffffff;
+  --text: #1e1c18;
+  --text2: #6b6860;
+  --border: rgba(0,0,0,0.09);
+  --blue: #2b7be8;
+  --blue-light: #deeafc;
+  --blue-dark: #1354a8;
+  --coral: #d94f28;
+  --coral-light: #fce8e2;
+  --coral-dark: #8f3218;
+  --rib: #c8784a;
+  --spine: #b09078;
+  --skin: #e8d5c4;
+  --skin-stroke: #c4a080;
+  --diaphragm: #3a80cc;
+  --lung: #e85878;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181816; --bg2: #222220; --card: #1e1e1c;
+    --text: #e8e4da; --text2: #9a9890; --border: rgba(255,255,255,0.09);
+    --blue-light: #0a2a50; --blue-dark: #7ab0f0;
+    --coral-light: #3a1408; --coral-dark: #f09070;
+    --skin: #6a5040; --skin-stroke: #8a6850;
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header {
+  padding: 22px 36px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
+header p  { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+.mode-bar {
+  display: flex; gap: 10px; padding: 14px 36px;
+  background: var(--card); border-bottom: 1px solid var(--border);
+}
+.mode-btn {
+  padding: 8px 24px; border-radius: 999px; font-size: 14px; font-weight: 600;
+  cursor: pointer; border: 1.5px solid var(--border);
+  background: transparent; color: var(--text2); transition: all 0.22s;
+}
+.mode-btn:hover { background: var(--bg2); }
+.mode-btn.active-inhale { background: var(--blue-light); color: var(--blue-dark); border-color: var(--blue); }
+.mode-btn.active-exhale { background: var(--coral-light); color: var(--coral-dark); border-color: var(--coral); }
+
+.main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - 112px);
+}
+
+/* ── LEFT PANEL ── */
+.diagram-panel {
+  padding: 28px 20px 28px 36px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.diagram-panel svg { max-width: 380px; width: 100%; }
+
+.status-bar {
+  width: 100%; max-width: 380px;
+  padding: 11px 16px; border-radius: 10px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 500;
+  background: var(--blue-light); color: var(--blue-dark);
+  border: 1px solid var(--blue);
+  transition: all 0.4s;
+}
+.status-bar.exhale { background: var(--coral-light); color: var(--coral-dark); border-color: var(--coral); }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--blue); transition: background 0.4s;
+  animation: blink 1.8s ease-in-out infinite;
+}
+.status-bar.exhale .status-dot { background: var(--coral); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── RIGHT PANEL ── */
+.steps-panel {
+  padding: 20px 36px 28px 20px;
+  display: flex; flex-direction: column; gap: 7px;
+  overflow-y: auto;
+}
+.panel-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text2); margin-bottom: 2px;
+}
+.step-card {
+  display: flex; align-items: flex-start; gap: 13px;
+  padding: 13px 15px; border-radius: 12px;
+  border: 1.5px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+  background: var(--card); text-align: left; width: 100%;
+}
+.step-card:hover { border-color: var(--text2); }
+.step-card.active-inhale { background: var(--blue-light); border-color: var(--blue); }
+.step-card.active-exhale { background: var(--coral-light); border-color: var(--coral); }
+
+.step-num {
+  min-width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+  background: var(--bg2); color: var(--text2); transition: all 0.2s;
+}
+.active-inhale .step-num { background: var(--blue); color: #fff; }
+.active-exhale .step-num { background: var(--coral); color: #fff; }
+
+.step-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.active-inhale .step-title { color: var(--blue-dark); }
+.active-exhale .step-title { color: var(--coral-dark); }
+.step-desc { font-size: 12.5px; color: var(--text2); line-height: 1.5; margin-top: 2px; }
+.active-inhale .step-desc { color: var(--blue); }
+.active-exhale .step-desc { color: var(--coral); }
+
+.detail-box {
+  margin-top: 4px; padding: 14px 16px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  font-size: 13px; line-height: 1.75; color: var(--text2);
+  min-height: 60px;
+}
+.detail-box strong { color: var(--text); }
+
+/* ══════════ SVG ANIMATIONS ══════════ */
+
+/* Rib motion */
+@keyframes rib-expand {
+  0%, 100% { transform: scale(1); }
+  50%  { transform: scale(1.06) translate(3px, -2px); }
+}
+@keyframes rib-contract {
+  0%, 100% { transform: scale(1); }
+  50%  { transform: scale(0.95) translate(-1px, 1px); }
+}
+.anim-ribs-expand  { transform-origin: 170px 148px; animation: rib-expand  2.5s ease-in-out infinite; }
+.anim-ribs-contract{ transform-origin: 170px 148px; animation: rib-contract 2.5s ease-in-out infinite; }
+
+/* Diaphragm breathe */
+@keyframes diaphragm-down { 
+  0%,100%{d:path("M80,308 Q125,296 170,297 Q215,296 260,308")} 
+  50%{d:path("M80,324 Q125,316 170,317 Q215,316 260,324")} 
+}
+@keyframes diaphragm-up   { 
+  0%,100%{d:path("M80,308 Q125,296 170,297 Q215,296 260,308")} 
+  50%{d:path("M80,292 Q125,276 170,277 Q215,276 260,292")} 
+}
+.anim-diaphragm-down { animation: diaphragm-down 2.5s ease-in-out infinite; }
+.anim-diaphragm-up   { animation: diaphragm-up   2.5s ease-in-out infinite; }
+
+/* Lung pulse */
+@keyframes lung-expand   { 0%,100%{rx:30;ry:60;cx:150;cy:215} 50%{rx:35;ry:65;cx:147;cy:213} }
+@keyframes lung-contract { 0%,100%{rx:30;ry:60;cx:150;cy:215} 50%{rx:25;ry:55;cx:152;cy:217} }
+.anim-lung-expand   { animation: lung-expand   2.5s ease-in-out infinite; }
+.anim-lung-contract { animation: lung-contract 2.5s ease-in-out infinite; }
+
+/* Air flow dash */
+@keyframes dash-down { to { stroke-dashoffset: -40; } }
+@keyframes dash-up   { to { stroke-dashoffset:  40; } }
+.anim-air-in  { stroke-dasharray: 8 6; animation: dash-down 0.9s linear infinite; }
+.anim-air-out { stroke-dasharray: 8 6; animation: dash-up   0.9s linear infinite; }
+
+/* Intercostal glow pulse */
+@keyframes ic-glow { 0%,100%{opacity:0.2} 50%{opacity:0.7} }
+.anim-ic-glow { animation: ic-glow 1.4s ease-in-out infinite; }
+
+/* Highlight ring on active structure */
+@keyframes ring-pulse { 0%,100%{stroke-opacity:0.5;stroke-width:2} 50%{stroke-opacity:1;stroke-width:4} }
+.anim-ring { animation: ring-pulse 1.4s ease-in-out infinite; }
+
+/* Ghost Layers (Original Reference Dotted Lines) */
+.ghost-layer { pointer-events: none; transition: opacity 0.3s ease; opacity: 0; }
+.ghost-layer.active-ghost { opacity: 0.55; }
+.ghost-rib   { fill: none; stroke: #94a3b8; stroke-linecap: round; stroke-dasharray: 4,4; }
+.ghost-diaph { fill: none; stroke: #94a3b8; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 5,4; }
+.ghost-badge { font-family: sans-serif; font-size: 10px; font-weight: 700; fill: #64748b; }
+
+/* Focus System */
+.focusable { transition: opacity 0.3s ease; }
+.dimmed { opacity: 0.15 !important; }
+
+@media (max-width: 680px) {
+  .main { grid-template-columns: 1fr; }
+  .diagram-panel { border-right: none; border-bottom: 1px solid var(--border); padding: 20px; }
+  header, .mode-bar { padding-left: 20px; padding-right: 20px; }
+  .steps-panel { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Human Breathing Mechanism</h1>
+  <p>Click Inhalation/Exhalation to switch phases. Click each step card to highlight structural actions.</p>
+</header>
+
+<div class="mode-bar">
+  <button class="mode-btn active-inhale" id="btn-inhale" onclick="setMode('inhale')">Inhalation</button>
+  <button class="mode-btn" id="btn-exhale" onclick="setMode('exhale')">Exhalation</button>
+</div>
+
+<div class="main">
+
+  <div class="diagram-panel">
+    <div class="status-bar" id="status-display">
+      <div class="status-dot"></div>
+      <span id="status-text">Inhalation Phase Active</span>
+    </div>
+
+    <svg id="body-svg" viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="bodyClip">
+          <ellipse cx="170" cy="240" rx="102" ry="147"/>
+        </clipPath>
+        <marker id="arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#2b7be8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#d94f28" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <pattern id="vertebrae" x="0" y="0" width="10" height="14" patternUnits="userSpaceOnUse">
+          <rect x="1" y="1" width="8" height="10" rx="2" fill="#c09880" opacity="0.3"/>
+        </pattern>
+      </defs>
+
+      <ellipse cx="170" cy="240" rx="100" ry="145" fill="var(--skin)" stroke="var(--skin-stroke)" stroke-width="1.5"/>
+      <ellipse cx="170" cy="60" rx="35" ry="43" fill="var(--skin)" stroke="var(--skin-stroke)" stroke-width="1.5"/>
+      <rect x="153" y="99" width="34" height="28" fill="var(--skin)"/>
+      <rect x="164" y="124" width="12" height="242" rx="6" fill="url(#vertebrae)" stroke="var(--spine)" stroke-width="0.8" opacity="0.5"/>
+
+      <g id="ghost-ribs" class="ghost-layer">
+        <path class="ghost-rib" stroke-width="3" d="M170,148 Q138,148 120,162 Q110,172 113,184 Q132,196 170,196"/>
+        <path class="ghost-rib" stroke-width="3" d="M170,166 Q134,166 115,182 Q104,194 108,208 Q129,222 170,222"/>
+        <path class="ghost-rib" stroke-width="3" d="M170,184 Q130,184 110,202 Q98,216 102,232 Q126,248 170,248"/>
+        <text class="ghost-badge" x="65" y="155">Original Position</text>
+      </g>
+      
+      <g id="ghost-diaphragm" class="ghost-layer">
+        <path class="ghost-diaph" d="M80,308 Q125,296 170,297 Q215,296 260,308"/>
+        <text class="ghost-badge" x="170" y="290" text-anchor="middle">Original Position</text>
+      </g>
+
+      <g id="svg-intercostal" class="focusable" opacity="0" style="transition: opacity 0.3s;">
+        <path class="anim-ic-glow" d="M135,160 Q120,180 125,210 L145,210 Q140,180 150,160 Z" fill="#e06030" opacity="0.6"/>
+        <ellipse cx="135" cy="190" rx="25" ry="35" fill="none" stroke="#e06030" stroke-width="2.5" class="anim-ring"/>
+      </g>
+
+      <ellipse id="svg-lungs" class="focusable anim-lung-expand" cx="150" cy="215" rx="30" ry="60" fill="var(--lung)" opacity="0.6"/>
+
+      <g id="svg-ribs" class="focusable anim-ribs-expand">
+        <path d="M170,148 Q138,148 120,162 Q110,172 113,184 Q132,196 170,196" fill="none" stroke="var(--rib)" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M170,166 Q134,166 115,182 Q104,194 108,208 Q129,222 170,222" fill="none" stroke="var(--rib)" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M170,184 Q130,184 110,202 Q98,216 102,232 Q126,248 170,248" fill="none" stroke="var(--rib)" stroke-width="3" stroke-linecap="round"/>
+      </g>
+
+      <path id="svg-diaphragm" class="focusable anim-diaphragm-down" d="M80,308 Q125,296 170,297 Q215,296 260,308" fill="none" stroke="var(--diaphragm)" stroke-width="5" stroke-linecap="round"/>
+
+      <g id="svg-pressure" class="focusable" opacity="1">
+        <rect x="122" y="185" width="96" height="50" rx="8" fill="var(--card)" stroke="var(--border)" stroke-width="1.5"/>
+        <text id="pressure-vol" x="170" y="205" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="var(--blue-dark)">Volume ↑</text>
+        <text id="pressure-prs" x="170" y="225" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="var(--blue-dark)">Pressure ↓</text>
+      </g>
+
+      <g id="svg-airflow" class="focusable" opacity="1">
+        <line id="air-line" x1="170" y1="15" x2="170" y2="40" stroke="var(--blue)" stroke-width="4" stroke-linecap="round" class="anim-air-in" marker-end="url(#arr-b)"/>
+        <text id="air-text" x="170" y="10" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="var(--blue)">Air In</text>
+      </g>
+
+      <g opacity="0.65" pointer-events="none">
+        <text x="50" y="170" text-anchor="end" font-family="sans-serif" font-size="11" fill="var(--text2)" font-weight="600">Rib cage</text>
+        <text x="50" y="210" text-anchor="end" font-family="sans-serif" font-size="11" fill="var(--text2)" font-weight="600">Intercostal muscles</text>
+        <text x="290" y="215" font-family="sans-serif" font-size="11" fill="var(--text2)" font-weight="600">Lungs</text>
+        <text x="290" y="312" font-family="sans-serif" font-size="11" fill="var(--text2)" font-weight="600">Diaphragm</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="steps-panel">
+    <span class="panel-label">Mechanism Breakdown</span>
+    
+    <div class="step-card" id="step1" onclick="clickStep(1, 'intercostal')">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Intercostal Muscles</div>
+        <div class="step-desc" id="desc1">External intercostal muscles contract, internal muscles relax.</div>
+      </div>
+    </div>
+
+    <div class="step-card" id="step2" onclick="clickStep(2, 'ribs')">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Rib Cage Movement</div>
+        <div class="step-desc" id="desc2">The rib cage moves upwards and outwards.</div>
+      </div>
+    </div>
+
+    <div class="step-card" id="step3" onclick="clickStep(3, 'diaphragm')">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Diaphragm Action</div>
+        <div class="step-desc" id="desc3">The diaphragm contracts and flattens down.</div>
+      </div>
+    </div>
+
+    <div class="step-card" id="step4" onclick="clickStep(4, 'pressure')">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Volume & Pressure</div>
+        <div class="step-desc" id="desc4">Thoracic cavity volume increases, air pressure decreases.</div>
+      </div>
+    </div>
+
+    <div class="panel-label" style="margin-top: 15px;">Detailed Explanation</div>
+    <div class="detail-box" id="detail-display">
+      Click on any mechanism step above to inspect structural changes and phase effects in detail.
+    </div>
+  </div>
+</div>
+
+<script>
+let currentMode = 'inhale';
+
+const data = {
+  inhale: {
+    status: "Inhalation Phase Active",
+    vol: "Volume ↑",
+    prs: "Pressure ↓",
+    air: "Air In",
+    airColor: "var(--blue)",
+    airDarkColor: "var(--blue-dark)",
+    marker: "url(#arr-b)",
+    steps: [
+      "External intercostal muscles contract, internal muscles relax.",
+      "The rib cage moves upwards and outwards.",
+      "The diaphragm contracts and flattens down.",
+      "Thoracic cavity volume increases, air pressure decreases."
+    ],
+    details: {
+      intercostal: "<strong>Intercostal Muscles:</strong> During inhalation, the <strong>external</strong> intercostal muscles contract while internal ones relax. This pulls the rib cage up and out.",
+      ribs: "<strong>Rib Cage:</strong> Moves <strong>upward and outward</strong> like a bucket handle. This increases the total internal volume from front to back.",
+      diaphragm: "<strong>Diaphragm:</strong> It contracts and <strong>moves downward to flatten</strong>, increasing vertical space inside the chest cavity.",
+      pressure: "<strong>Boyle's Law:</strong> Increased lung volume leads to <strong>lower internal pressure</strong> compared to outside air, drawing air <strong>in</strong>."
+    }
+  },
+  exhale: {
+    status: "Exhalation Phase Active",
+    vol: "Volume ↓",
+    prs: "Pressure ↑",
+    air: "Air Out",
+    airColor: "var(--coral)",
+    airDarkColor: "var(--coral-dark)",
+    marker: "url(#arr-c)",
+    steps: [
+      "Internal intercostal muscles contract, external muscles relax.",
+      "The rib cage moves downwards and inwards.",
+      "The diaphragm relaxes and curves upwards.",
+      "Thoracic cavity volume decreases, air pressure increases."
+    ],
+    details: {
+      intercostal: "<strong>Intercostal Muscles:</strong> The external intercostal muscles relax. For active exhalation, the <strong>internal</strong> muscles contract to compress the lungs.",
+      ribs: "<strong>Rib Cage:</strong> It moves <strong>downward and inward</strong> due to structural weight and muscle relaxation, shrinking the chest cavity.",
+      diaphragm: "<strong>Diaphragm:</strong> Relaxes and returns to its dome-shaped resting position, pushing up against the base of the lungs.",
+      pressure: "<strong>Air Expulsion:</strong> Decreased thoracic cavity volume raises internal air pressure. Air is pushed <strong>out</strong> into the lower-pressure atmosphere."
+    }
+  }
+};
+
+function setMode(mode) {
+  currentMode = mode;
+  
+  // 1. Toggle mode buttons classes
+  document.getElementById('btn-inhale').className = 'mode-btn' + (mode === 'inhale' ? ' active-inhale' : '');
+  document.getElementById('btn-exhale').className = 'mode-btn' + (mode === 'exhale' ? ' active-exhale' : '');
+  
+  // 2. Status banner update
+  const statusDisplay = document.getElementById('status-display');
+  statusDisplay.className = 'status-bar' + (mode === 'exhale' ? ' exhale' : '');
+  document.getElementById('status-text').innerText = data[mode].status;
+
+  // 3. Update main SVG element animations
+  const ribs = document.getElementById('svg-ribs');
+  const lungs = document.getElementById('svg-lungs');
+  const diaphragm = document.getElementById('svg-diaphragm');
+  const airLine = document.getElementById('air-line');
+  
+  if(mode === 'inhale') {
+    ribs.setAttribute('class', 'focusable anim-ribs-expand');
+    lungs.setAttribute('class', 'focusable anim-lung-expand');
+    diaphragm.setAttribute('class', 'focusable anim-diaphragm-down');
+    airLine.setAttribute('class', 'anim-air-in');
+  } else {
+    ribs.setAttribute('class', 'focusable anim-ribs-contract');
+    lungs.setAttribute('class', 'focusable anim-lung-contract');
+    diaphragm.setAttribute('class', 'focusable anim-diaphragm-up');
+    airLine.setAttribute('class', 'anim-air-out');
+  }
+
+  // 4. In-SVG Text Sync
+  document.getElementById('pressure-vol').innerText = data[mode].vol;
+  document.getElementById('pressure-vol').style.fill = data[mode].airDarkColor;
+  document.getElementById('pressure-prs').innerText = data[mode].prs;
+  document.getElementById('pressure-prs').style.fill = data[mode].airDarkColor;
+  document.getElementById('air-text').innerText = data[mode].air;
+  document.getElementById('air-text').style.fill = data[mode].airColor;
+  airLine.style.stroke = data[mode].airColor;
+  airLine.setAttribute('marker-end', data[mode].marker);
+
+  // 5. Card text descriptions update
+  for(let i = 1; i <= 4; i++) {
+    document.getElementById('desc' + i).innerText = data[mode].steps[i-1];
+  }
+
+  // 6. Refresh focus view
+  clearFocus();
+}
+
+function clickStep(stepNum, structure) {
+  const activeClass = (currentMode === 'inhale') ? 'active-inhale' : 'active-exhale';
+  
+  // Reset card selections
+  for(let i = 1; i <= 4; i++) {
+    document.getElementById('step' + i).classList.remove('active-inhale', 'active-exhale');
+  }
+  // Set current active card
+  document.getElementById('step' + stepNum).classList.add(activeClass);
+  
+  // Set text inside the summary box
+  document.getElementById('detail-display').innerHTML = data[currentMode].details[structure];
+  
+  // Isolate and apply graphic dimming filters
+  applySVGFocus(structure);
+}
+
+function applySVGFocus(structure) {
+  const
