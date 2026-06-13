@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Human Breathing Mechanism</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f7f5f0;
+  --bg2: #edeae2;
+  --card: #ffffff;
+  --text: #1e1c18;
+  --text2: #6b6860;
+  --border: rgba(0,0,0,0.09);
+  --blue: #2b7be8;
+  --blue-light: #deeafc;
+  --blue-dark: #1354a8;
+  --coral: #d94f28;
+  --coral-light: #fce8e2;
+  --coral-dark: #8f3218;
+  --rib: #c8784a;
+  --rib-hi: #ff4400;
+  --diaphragm: #3a80cc;
+  --diaphragm-hi: #1050a0;
+  --lung: #e85878;
+  --lung-hi: #ff3060;
+  --intercostal: #e06030;
+  --spine: #b09078;
+  --skin: #e8d5c4;
+  --skin-stroke: #c4a080;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181816; --bg2: #222220; --card: #1e1e1c;
+    --text: #e8e4da; --text2: #9a9890; --border: rgba(255,255,255,0.09);
+    --blue-light: #0a2a50; --blue-dark: #7ab0f0;
+    --coral-light: #3a1408; --coral-dark: #f09070;
+    --skin: #6a5040; --skin-stroke: #8a6850;
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header {
+  padding: 22px 36px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
+header p  { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+.mode-bar {
+  display: flex; gap: 10px; padding: 14px 36px;
+  background: var(--card); border-bottom: 1px solid var(--border);
+}
+.mode-btn {
+  padding: 8px 24px; border-radius: 999px; font-size: 14px; font-weight: 600;
+  cursor: pointer; border: 1.5px solid var(--border);
+  background: transparent; color: var(--text2); transition: all 0.22s;
+}
+.mode-btn:hover { background: var(--bg2); }
+.mode-btn.active-inhale { background: var(--blue-light); color: var(--blue-dark); border-color: var(--blue); }
+.mode-btn.active-exhale { background: var(--coral-light); color: var(--coral-dark); border-color: var(--coral); }
+
+.main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - 112px);
+}
+
+/* ── LEFT PANEL ── */
+.diagram-panel {
+  padding: 28px 20px 28px 36px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.diagram-panel svg { max-width: 380px; width: 100%; }
+
+.status-bar {
+  width: 100%; max-width: 380px;
+  padding: 11px 16px; border-radius: 10px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 500;
+  background: var(--blue-light); color: var(--blue-dark);
+  border: 1px solid var(--blue);
+  transition: background 0.4s, color 0.4s, border-color 0.4s;
+}
+.status-bar.exhale { background: var(--coral-light); color: var(--coral-dark); border-color: var(--coral); }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--blue); transition: background 0.4s;
+  animation: blink 1.8s ease-in-out infinite;
+}
+.status-bar.exhale .status-dot { background: var(--coral); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── RIGHT PANEL ── */
+.steps-panel {
+  padding: 20px 36px 28px 20px;
+  display: flex; flex-direction: column; gap: 7px;
+  overflow-y: auto;
+}
+.panel-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text2); margin-bottom: 2px;
+}
+.step-card {
+  display: flex; align-items: flex-start; gap: 13px;
+  padding: 13px 15px; border-radius: 12px;
+  border: 1.5px solid var(--border);
+  cursor: pointer; transition: all 0.2s;
+  background: var(--card); text-align: left; width: 100%;
+}
+.step-card:hover { border-color: var(--text2); }
+.step-card.active-inhale { background: var(--blue-light); border-color: var(--blue); }
+.step-card.active-exhale { background: var(--coral-light); border-color: var(--coral); }
+
+.step-num {
+  min-width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+  background: var(--bg2); color: var(--text2); transition: all 0.2s;
+}
+.active-inhale .step-num { background: var(--blue); color: #fff; }
+.active-exhale .step-num { background: var(--coral); color: #fff; }
+
+.step-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.active-inhale .step-title { color: var(--blue-dark); }
+.active-exhale .step-title { color: var(--coral-dark); }
+.step-desc { font-size: 12.5px; color: var(--text2); line-height: 1.5; margin-top: 2px; }
+.active-inhale .step-desc { color: var(--blue); }
+.active-exhale .step-desc { color: var(--coral); }
+
+.detail-box {
+  margin-top: 4px; padding: 14px 16px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  font-size: 13px; line-height: 1.75; color: var(--text2);
+  min-height: 60px;
+}
+.detail-box strong { color: var(--text); }
+
+/* ══════════ SVG ANIMATIONS ══════════ */
+
+/* Rib motion */
+@keyframes rib-expand {
+  0%   { transform: scaleX(1)    scaleY(1); }
+  50%  { transform: scaleX(1.07) scaleY(1.04); }
+  100% { transform: scaleX(1)    scaleY(1); }
+}
+@keyframes rib-contract {
+  0%   { transform: scaleX(1)    scaleY(1); }
+  50%  { transform: scaleX(0.93) scaleY(0.96); }
+  100% { transform: scaleX(1)    scaleY(1); }
+}
+.anim-ribs-expand   { transform-origin: 170px 215px; animation: rib-expand   2.2s ease-in-out infinite; }
+.anim-ribs-contract { transform-origin: 170px 215px; animation: rib-contract 2.2s ease-in-out infinite; }
+
+/*
+ * FIX: Diaphragm animation — replaced CSS `d:path()` (Chrome-only) with
+ * cross-browser `translateY` transform. Down = inhale (+8px), Up = exhale (−18px).
+ */
+@keyframes diaphragm-down {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(8px); }
+}
+@keyframes diaphragm-up {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-18px); }
+}
+.anim-diaphragm-down { animation: diaphragm-down 2.2s ease-in-out infinite; }
+.anim-diaphragm-up   { animation: diaphragm-up   2.2s ease-in-out infinite; }
+
+/*
+ * FIX: Lung animation — replaced non-standard CSS `rx`/`ry` attribute animation
+ * with cross-browser `transform: scale()`.
+ */
+@keyframes lung-expand {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.18, 1.13); }
+}
+@keyframes lung-contract {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(0.77, 0.83); }
+}
+.anim-lung-expand   { transform-origin: 150px 215px; animation: lung-expand   2.2s ease-in-out infinite; }
+.anim-lung-contract { transform-origin: 150px 215px; animation: lung-contract 2.2s ease-in-out infinite; }
+
+/* Air flow dash */
+@keyframes dash-down { to { stroke-dashoffset: -40; } }
+@keyframes dash-up   { to { stroke-dashoffset:  40; } }
+.anim-air-in  { stroke-dasharray: 8 6; animation: dash-down 0.9s linear infinite; }
+.anim-air-out { stroke-dasharray: 8 6; animation: dash-up   0.9s linear infinite; }
+
+/* Intercostal glow pulse */
+@keyframes ic-glow { 0%,100%{opacity:0.35} 50%{opacity:0.65} }
+.anim-ic-glow { animation: ic-glow 1.4s ease-in-out infinite; }
+
+/* Pressure shimmer */
+@keyframes pressure-pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+.anim-pressure { animation: pressure-pulse 1.2s ease-in-out infinite; }
+
+/* Highlight ring on active structure */
+@keyframes ring-pulse { 0%,100%{stroke-opacity:0.6;stroke-width:3} 50%{stroke-opacity:1;stroke-width:5} }
+.anim-ring { animation: ring-pulse 1.4s ease-in-out infinite; }
+
+/* Ghost (original position) — high contrast pale blue-gray dashes */
+.ghost-layer { pointer-events: none; transition: opacity 0.4s; }
+.ghost-rib   { fill: none; stroke: #a0b8e8; stroke-linecap: round; stroke-dasharray: 6,4; }
+.ghost-diaph { fill: none; stroke: #a0b8e8; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 7,5; }
+.ghost-lung  { fill: #7090cc; }
+.ghost-badge { font-family: sans-serif; font-size: 10.5px; font-weight: 800; fill: #4868b8; letter-spacing: 0.05em; }
+
+@media (max-width: 680px) {
+  .main { grid-template-columns: 1fr; }
+  .diagram-panel { border-right: none; border-bottom: 1px solid var(--border); padding: 20px; }
+  header, .mode-bar { padding-left: 20px; padding-right: 20px; }
+  .steps-panel { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Human breathing mechanism</h1>
+  <p>Click each step to animate the corresponding structure. Watch the diagram breathe.</p>
+</header>
+
+<div class="mode-bar">
+  <!-- FIX: Added type="button" to prevent accidental form submission -->
+  <button type="button" class="mode-btn active-inhale" id="btn-inhale">Inhalation</button>
+  <button type="button" class="mode-btn" id="btn-exhale">Exhalation</button>
+</div>
+
+<div class="main">
+
+  <!-- ── DIAGRAM ── -->
+  <div class="diagram-panel">
+    <!-- FIX: Added role="img" and aria-label for accessibility -->
+    <svg id="body-svg" viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg"
+         role="img" aria-label="Animated diagram of the human breathing mechanism">
+      <title>Human Breathing Mechanism Diagram</title>
+      <defs>
+        <clipPath id="bodyClip">
+          <ellipse cx="170" cy="240" rx="102" ry="147"/>
+        </clipPath>
+        <marker id="arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#2b7be8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-c" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#d94f28" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <!-- Vertebra pattern on spine -->
+        <pattern id="vertebrae" x="0" y="0" width="10" height="14" patternUnits="userSpaceOnUse">
+          <rect x="1" y="1" width="8" height="10" rx="2" fill="#c09880" opacity="0.5"/>
+        </pattern>
+      </defs>
+
+      <!-- Body silhouette with subtle texture -->
+      <ellipse cx="170" cy="240" rx="100" ry="145"
+               fill="var(--skin)" stroke="var(--skin-stroke)" stroke-width="1.5"/>
+
+      <!-- Head -->
+      <ellipse cx="170" cy="60" rx="35" ry="43"
+               fill="var(--skin)" stroke="var(--skin-stroke)" stroke-width="1.5"/>
+      <!-- Face detail: eyes + nose bridge -->
+      <ellipse cx="157" cy="54" rx="5" ry="6" fill="var(--skin-stroke)" opacity="0.35"/>
+      <ellipse cx="183" cy="54" rx="5" ry="6" fill="var(--skin-stroke)" opacity="0.35"/>
+      <path d="M170,52 Q168,60 170,65 Q172,60 170,52" fill="var(--skin-stroke)" opacity="0.25"/>
+      <!-- Neck -->
+      <rect x="153" y="99" width="34" height="28" fill="var(--skin)"/>
+      <line x1="158" y1="99" x2="158" y2="127" stroke="var(--skin-stroke)" stroke-width="0.8" opacity="0.4"/>
+      <line x1="182" y1="99" x2="182" y2="127" stroke="var(--skin-stroke)" stroke-width="0.8" opacity="0.4"/>
+
+      <!-- Spine with vertebra pattern -->
+      <rect x="164" y="124" width="12" height="242" rx="6"
+            fill="url(#vertebrae)" stroke="var(--spine)" stroke-width="0.8" opacity="0.7"/>
+
+      <!-- Shoulder / clavicle lines -->
+      <path d="M70,180 Q110,155 170,148" fill="none" stroke="var(--skin-stroke)" stroke-width="1.2" opacity="0.4"/>
+
+      <!-- ── INTERCOSTAL HIGHLIGHT ── -->
+      <g id="g-intercostal" opacity="0">
+        <path class="anim-ic-glow"
+          d="M170,148 Q138,148 120,162 Q110,172 113,184 Q116,196 132,196 Q152,196 170,196
+             L170,222 Q152,222 129,222 Q112,222 108,208 Q104,194 115,182 Q134,166 170,166 Z"
+          fill="#E85D24" opacity="0.4"/>
+        <path class="anim-ic-glow"
+          d="M170,166 Q134,166 115,182 Q104,194 108,208 Q112,222 129,222 Q152,222 170,222
+             L170,248 Q150,248 126,248 Q106,248 102,232 Q98,216 110,202 Q130,184 170,184 Z"
+          fill="#E85D24" opacity="0.3"/>
+        <!-- ring highlight -->
+        <ellipse cx="140" cy="195" rx="36" ry="30" fill="none"
+                 stroke="#E85D24" stroke-width="2" stroke-dasharray="5,4"
+                 class="anim-ring" opacity="0.7"/>
+      </g>
+
+      <!-- ── GHOST RIBS (original position, shown when ribs animate) ── -->
+      <g id="ghost-ribs" class="ghost-layer" opacity="0">
+        <path class="ghost-rib" stroke-width="4"   d="M170,148 Q138,148 120,162 Q110,172 113,184 Q116,196 132,196 Q152,196 170,196"/>
+        <path class="ghost-rib" stroke-width="4"   d="M170,166 Q134,166 115,182 Q104,194 108,208 Q112,222 129,222 Q152,222 170,222"/>
+        <path class="ghost-rib" stroke-width="3.5" d="M170,184 Q130,184 110,202 Q98,216 102,232 Q106,248 126,248 Q150,248 170,248"/>
+        <path class="ghost-rib" stroke-width="3.5" d="M170,200 Q132,200 113,220 Q103,236 107,252 Q111,268 130,268 Q152,268 170,268"/>
+        <path class="ghost-rib" stroke-width="3"   d="M170,214 Q136,214 120,234 Q112,250 116,266 Q120,280 138,280 Q155,280 170,280"/>
+        <text class="ghost-badge" x="90" y="150" text-anchor="middle">original</text>
+      </g>
+
+      <!-- ── RIBS ── -->
+      <g id="g-ribs">
+        <!-- Main rib curves -->
+        <path id="rib1" d="M170,148 Q138,148 120,162 Q110,172 113,184 Q116,196 132,196 Q152,196 170,196"
+              fill="none" stroke="var(--rib)" stroke-width="3.5" stroke-linecap="round"/>
+        <path id="rib2" d="M170,166 Q134,166 115,182 Q104,194 108,208 Q112,222 129,222 Q152,222 170,222"
+              fill="none" stroke="var(--rib)" stroke-width="3.5" stroke-linecap="round"/>
+        <path id="rib3" d="M170,184 Q130,184 110,202 Q98,216 102,232 Q106,248 126,248 Q150,248 170,248"
+              fill="none" stroke="var(--rib)" stroke-width="3" stroke-linecap="round"/>
+        <path id="rib4" d="M170,200 Q132,200 113,220 Q103,236 107,252 Q111,268 130,268 Q152,268 170,268"
+              fill="none" stroke="var(--rib)" stroke-width="3" stroke-linecap="round"/>
+        <path id="rib5" d="M170,214 Q136,214 120,234 Q112,250 116,266 Q120,280 138,280 Q155,280 170,280"
+              fill="none" stroke="var(--rib)" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Rib cartilage tips (dotted continuation) -->
+        <path d="M132,196 Q122,206 118,216 Q116,226 120,234"
+              fill="none" stroke="var(--rib)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4,3" opacity="0.5"/>
+        <path d="M129,222 Q118,232 115,244 Q113,254 117,262"
+              fill="none" stroke="var(--rib)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4,3" opacity="0.5"/>
+      </g>
+
+      <!-- ── GHOST LUNG ── -->
+      <!-- FIX: Removed redundant inline style="opacity:0"; using only the opacity attribute -->
+      <ellipse id="ghost-lungs" class="ghost-layer ghost-lung" cx="150" cy="215" rx="30" ry="60"
+               clip-path="url(#bodyClip)" opacity="0"/>
+
+      <!-- ── LUNG ── -->
+      <ellipse id="g-lungs" cx="150" cy="215" rx="30" ry="60"
+               fill="var(--lung)" opacity="0.45" clip-path="url(#bodyClip)"/>
+      <!-- Bronchi tree -->
+      <g clip-path="url(#bodyClip)" opacity="0.35" id="g-bronchi">
+        <line x1="170" y1="155" x2="155" y2="175" stroke="var(--text2)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="155" y1="175" x2="145" y2="195" stroke="var(--text2)" stroke-width="2"   stroke-linecap="round"/>
+        <line x1="145" y1="195" x2="138" y2="213" stroke="var(--text2)" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- FIX: Restored truncated line element (was cut off at "stroke-lin" on original line 324) -->
+        <line x1="145" y1="195" x2="152" y2="213" stroke="var(--text2)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="155" y1="175" x2="162" y2="197" stroke="var(--text2)" stroke-width="1.5" stroke-linecap="round"/>
+      </g>
+
+      <!-- ── GHOST DIAPHRAGM (resting position) ── -->
+      <path id="ghost-diaphragm" class="ghost-layer ghost-diaph"
+            d="M80,308 Q125,296 170,297 Q215,296 260,308" opacity="0"/>
+      <text id="ghost-diaph-lbl" class="ghost-badge ghost-layer" x="170" y="292" text-anchor="middle" opacity="0">original position</text>
+
+      <!-- ── DIAPHRAGM ── -->
+      <path id="g-diaphragm"
+            d="M80,308 Q125,296 170,297 Q215,296 260,308"
+            fill="none" stroke="var(--diaphragm)" stroke-width="5" stroke-linecap="round"/>
+      <!-- Diaphragm texture (parallel lines under dome) -->
+      <g id="g-diaphragm-tex" opacity="0.18" clip-path="url(#bodyClip)">
+        <path d="M90,318 Q130,308 170,309 Q210,308 250,318" fill="none" stroke="var(--diaphragm)" stroke-width="2"/>
+        <path d="M100,328 Q132,320 170,321 Q208,320 240,328" fill="none" stroke="var(--diaphragm)" stroke-width="1.5"/>
+      </g>
+
+      <!-- ── PRESSURE TEXT ── -->
+      <g id="g-pressure" opacity="0">
+        <rect x="118" y="185" width="92" height="46" rx="8"
+              fill="var(--blue-light)" stroke="var(--blue)" stroke-width="1" opacity="0.9"/>
+        <text id="pressure-vol" x="164" y="204"
+              text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="var(--blue-dark)" class="anim-pressure">
+          volume &#x2191;
+        </text>
+        <text id="pressure-prs" x="164" y="222"
+              text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="var(--blue-dark)" class="anim-pressure">
+          pressure &#x2193;
+        </text>
+      </g>
+
+      <!-- ── AIR FLOW IN ── -->
+      <g id="g-airflow-in" opacity="0">
+        <line x1="170" y1="10" x2="170" y2="36"
+              stroke="var(--blue)" stroke-width="4" stroke-linecap="round"
+              class="anim-air-in" marker-end="url(#arr-b)"/>
+        <text x="170" y="7" text-anchor="middle"
+              font-family="sans-serif" font-size="11" font-weight="700" fill="var(--blue)">air in</text>
+      </g>
+
+      <!-- ── AIR FLOW OUT ── -->
+      <g id="g-airflow-out" opacity="0">
+        <line x1="170" y1="36" x2="170" y2="10"
+              stroke="var(--coral)" stroke-width="4" stroke-linecap="round"
+              class="anim-air-out" marker-end="url(#arr-c)"/>
+        <text x="170" y="7" text-anchor="middle"
+              font-family="sans-serif" font-size="11" font-weight="700" fill="var(--coral)">air out</text>
+      </g>
+
+      <!-- ── GHOST LEGEND ── -->
+      <g id="ghost-legend" opacity="0" style="transition: opacity 0.35s;">
+        <rect x="62" y="427" width="196" height="24" rx="6" fill="#f0f4ff" stroke="#a0b8e8" stroke-width="1" opacity="0.95"/>
+        <!-- ghost swatch -->
+        <line x1="72" y1="439" x2="90" y2="439" stroke="#a0b8e8" stroke-width="3.5" stroke-dasharray="5,3"/>
+        <text font-family="sans-serif" font-size="10" fill="#4868b8" font-weight="700" x="94" y="443">original position</text>
+        <!-- divider -->
+        <line x1="175" y1="431" x2="175" y2="449" stroke="#a0b8e8" stroke-width="0.7"/>
+        <!-- active swatch -->
+        <line x1="181" y1="439" x2="196" y2="439" stroke="#ff4400" stroke-width="3.5" stroke-linecap="round"/>
+        <text font-family="sans-serif" font-size="10" fill="#cc2200" font-weight="700" x="200" y="443">new position</text>
+      </g>
+
+      <!-- ── LABELS ── -->
+      <!-- Ribs -->
+      <line x1="120" y1="165" x2="56" y2="158" stroke="var(--text2)" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <circle cx="120" cy="165" r="2" fill="var(--text2)" opacity="0.5"/>
+      <text x="52" y="155" text-anchor="end" font-family="sans-serif" font-size="12" fill="var(--text2)" font-weight="600">Ribs</text>
+
+      <!-- Intercostal -->
+      <line x1="116" y1="200" x2="56" y2="196" stroke="var(--text2)" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <circle cx="116" cy="200" r="2" fill="var(--text2)" opacity="0.5"/>
+      <text x="52" y="193" text-anchor="end" font-family="sans-serif" font-size="12" fill="var(--text2)" font-weight="600">Intercostal</text>
+      <text x="52" y="207" text-anchor="end" font-family="sans-serif" font-size="12" fill="var(--text2)">muscles</text>
+
+      <!-- Lungs -->
+      <line x1="178" y1="215" x2="294" y2="210" stroke="var(--text2)" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <circle cx="178" cy="215" r="2" fill="var(--text2)" opacity="0.5"/>
+      <text x="298" y="214" font-family="sans-serif" font-size="12" fill="var(--text2)" font-weight="600">Lungs</text>
+
+      <!-- Diaphragm -->
+      <line x1="258" y1="308" x2="290" y2="310" stroke="var(--text2)" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <circle cx="258" cy="308" r="2" fill="var(--text2)" opacity="0.5"/>
+      <text x="294" y="314" font-family="sans-serif" font-size="12" fill="var(--text2)" font-weight="600">Diaphragm</text>
+
+      <!-- Vertebral column -->
+      <line x1="176" y1="180" x2="296" y2="260" stroke="var(--text2)" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <circle cx="176" cy="180" r="2" fill="var(--text2)" opacity="0.5"/>
+      <text x="299" y="264" font-family="sans-serif" font-size="12" fill="var(--text2)" font-weight="600">Vertebral</text>
+      <text x="299" y="278" font-family="sans-serif" font-size="12" fill="var(--text2)">column</text>
+
+    </svg>
+
+    <div id="status-bar" class="status-bar" role="status" aria-live="polite">
+      <div class="status-dot"></div>
+      <span id="status-text">Select a step to animate the diagram</span>
+    </div>
+  </div>
+
+  <!-- ── STEPS ── -->
+  <div class="steps-panel">
+    <div class="panel-label" id="panel-label">Inhalation — steps 1 to 5</div>
+    <!-- FIX: Removed inline onclick handlers; events are bound via addEventListener in JS -->
+    <div id="steps-container" role="list"></div>
+    <div class="detail-box" id="detail-box" aria-live="polite">
+      Click any numbered step to see what happens — and watch the diagram animate in real time.
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   DATA
+══════════════════════════════════════════════════════ */
+const MODES = {
+  inhale: {
+    label: "Inhalation — steps 1 to 5",
+    statusDefault: "Inhalation: air is drawn into the lungs",
+    steps: [
+      {
+        title: "External intercostal muscles contract",
+        short: "Internal ones relax simultaneously",
+        detail: "<strong>External intercostal muscles contract</strong> while the internal intercostal muscles relax. This coordinated action is what initiates the inhalation cycle.",
+        highlight: "intercostal",
+        status: "Intercostal muscles actively contracting"
+      },
+      {
+        title: "Ribcage moves upward and outward",
+        short: "Thoracic cavity widens",
+        detail: "The contracting external intercostal muscles pull the <strong>ribcage upward and outward</strong>, increasing the width (lateral diameter) of the thoracic cavity.",
+        highlight: "ribs",
+        status: "Ribcage expanding — thorax widens"
+      },
+      {
+        title: "Diaphragm contracts and flattens",
+        short: "Moves downward, becomes horizontal",
+        detail: "Simultaneously, the <strong>diaphragm muscles contract</strong>, pulling the diaphragm downward so it becomes flat and horizontal. This increases the vertical height of the thoracic cavity.",
+        highlight: "diaphragm",
+        status: "Diaphragm flattening downward"
+      },
+      {
+        title: "Thoracic volume increases; pressure falls",
+        short: "Volume \u2191 causes pressure \u2193 (Boyle\u2019s Law)",
+        detail: "Both movements together <strong>increase thoracic cavity volume</strong>. By Boyle\u2019s Law, this drops the internal air pressure <strong>below atmospheric pressure</strong>, creating a pressure gradient.",
+        highlight: "pressure",
+        status: "Thoracic pressure now below atmospheric"
+      },
+      {
+        title: "Air is forced into the lungs",
+        short: "Atmospheric pressure drives air inward",
+        detail: "Higher <strong>atmospheric pressure outside</strong> forces air through the nasal passages, down the trachea, through the bronchi, and into the <strong>lungs</strong> \u2014 equalising the pressure difference.",
+        highlight: "air-in",
+        status: "Air flowing in — lungs expanding"
+      }
+    ]
+  },
+  exhale: {
+    label: "Exhalation — steps 1 to 5",
+    statusDefault: "Exhalation: air is pushed out of the lungs",
+    steps: [
+      {
+        title: "External intercostal muscles relax",
+        short: "Internal ones contract simultaneously",
+        detail: "The <strong>external intercostal muscles relax</strong> while the internal intercostal muscles contract \u2014 the precise reverse of inhalation step 1.",
+        highlight: "intercostal",
+        status: "Intercostal muscles relaxing"
+      },
+      {
+        title: "Ribcage moves downward and inward",
+        short: "Thoracic cavity narrows",
+        detail: "Relaxation of the external intercostals allows the <strong>ribcage to move downward and inward</strong>, reducing the lateral diameter of the thoracic cavity.",
+        highlight: "ribs",
+        status: "Ribcage contracting — thorax narrows"
+      },
+      {
+        title: "Diaphragm relaxes and rises",
+        short: "Curves upward into a dome shape",
+        detail: "The <strong>diaphragm relaxes</strong> and is pushed upward by the abdominal organs, forming a dome shape. This reduces the vertical height of the thoracic cavity.",
+        highlight: "diaphragm",
+        status: "Diaphragm rising into dome shape"
+      },
+      {
+        title: "Thoracic volume decreases; pressure rises",
+        short: "Volume \u2193 causes pressure \u2191 (Boyle\u2019s Law)",
+        detail: "Both movements together <strong>reduce thoracic cavity volume</strong>. The internal air pressure rises <strong>above atmospheric pressure</strong>, driving air outward.",
+        highlight: "pressure-exhale",
+        status: "Thoracic pressure now above atmospheric"
+      },
+      {
+        title: "Air is pushed out of the lungs",
+        short: "Higher thoracic pressure expels air",
+        detail: "The greater pressure inside the thorax forces air from the <strong>lungs</strong>, up through the trachea, and out through the mouth/nose.",
+        highlight: "air-out",
+        status: "Air flowing out — lungs deflating"
+      }
+    ]
+  }
+};
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+let mode   = 'inhale';
+let active = -1;
+
+/* ══════════════════════════════════════════════════════
+   MODE SWITCHING
+   FIX: Moved event binding out of inline onclick attributes
+        and into addEventListener for cleaner, safer code.
+══════════════════════════════════════════════════════ */
+document.getElementById('btn-inhale').addEventListener('click', function () { setMode('inhale'); });
+document.getElementById('btn-exhale').addEventListener('click', function () { setMode('exhale'); });
+
+function setMode(m) {
+  mode = m;
+  active = -1;
+  document.getElementById('btn-inhale').className = 'mode-btn' + (m === 'inhale' ? ' active-inhale' : '');
+  document.getElementById('btn-exhale').className = 'mode-btn' + (m === 'exhale' ? ' active-exhale' : '');
+  document.getElementById('panel-label').textContent = MODES[m].label;
+  var sb = document.getElementById('status-bar');
+  sb.className = 'status-bar' + (m === 'exhale' ? ' exhale' : '');
+  document.getElementById('status-text').textContent = MODES[m].statusDefault;
+  document.getElementById('detail-box').textContent =
+    'Click any numbered step to see what happens \u2014 and watch the diagram animate in real time.';
+  render();
+  resetDiagram();
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER STEP CARDS
+   FIX: Replaced innerHTML template with DOM creation to
+        eliminate XSS risk from injected onclick strings.
+        Bound click events via addEventListener.
+══════════════════════════════════════════════════════ */
+function render() {
+  var cls       = mode === 'inhale' ? 'inhale' : 'exhale';
+  var container = document.getElementById('steps-container');
+  container.innerHTML = '';
+
+  MODES[mode].steps.forEach(function (s, i) {
+    var btn = document.createElement('button');
+    btn.type      = 'button';
+    btn.className = 'step-card' + (active === i ? ' active-' + cls : '');
+    btn.setAttribute('role', 'listitem');
+    btn.setAttribute('aria-pressed', active === i ? 'true' : 'false');
+    btn.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + s.title);
+
+    var numDiv   = document.createElement('div');
+    numDiv.className   = 'step-num';
+    numDiv.textContent = String(i + 1);
+
+    var bodyDiv   = document.createElement('div');
+    var titleDiv  = document.createElement('div');
+    titleDiv.className   = 'step-title';
+    titleDiv.textContent = s.title;
+    var descDiv   = document.createElement('div');
+    descDiv.className   = 'step-desc';
+    descDiv.textContent = s.short;
+
+    bodyDiv.appendChild(titleDiv);
+    bodyDiv.appendChild(descDiv);
+    btn.appendChild(numDiv);
+    btn.appendChild(bodyDiv);
+
+    btn.addEventListener('click', (function (idx) {
+      return function () { pick(idx); };
+    }(i)));
+
+    container.appendChild(btn);
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   PICK A STEP
+══════════════════════════════════════════════════════ */
+function pick(i) {
+  active = i;
+  render();
+  var s  = MODES[mode].steps[i];
+  /* FIX: Use innerHTML only for trusted, hard-coded detail strings (no user input) */
+  document.getElementById('detail-box').innerHTML = s.detail;
+  document.getElementById('status-text').textContent = s.status;
+  var sb = document.getElementById('status-bar');
+  sb.className = 'status-bar' + (mode === 'exhale' ? ' exhale' : '');
+  applyHighlight(s.highlight);
+}
+
+/* ══════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════ */
+function op(id, v) {
+  var el = document.getElementById(id);
+  if (el) { el.style.opacity = v; }
+}
+
+/* ══════════════════════════════════════════════════════
+   RESET DIAGRAM
+   FIX: Also resets pressure box colours so switching from
+        exhale back to inhale no longer leaves coral colours.
+══════════════════════════════════════════════════════ */
+function resetDiagram() {
+  op('g-intercostal', 0);
+  op('g-airflow-in',  0);
+  op('g-airflow-out', 0);
+  op('g-pressure',    0);
+  op('g-lungs',       0.45);
+  op('ghost-ribs',       0);
+  op('ghost-lungs',      0);
+  op('ghost-diaphragm',  0);
+  op('ghost-diaph-lbl',  0);
+  op('ghost-legend',     0);
+
+  /* Reset rib colours and animations */
+  document.querySelectorAll('[id^="rib"]').forEach(function (r) {
+    r.style.stroke      = 'var(--rib)';
+    r.style.strokeWidth = '';
+    r.classList.remove('anim-ribs-expand', 'anim-ribs-contract');
+  });
+  document.getElementById('g-ribs').classList.remove('anim-ribs-expand', 'anim-ribs-contract');
+
+  /* Reset diaphragm */
+  var d = document.getElementById('g-diaphragm');
+  d.classList.remove('anim-diaphragm-down', 'anim-diaphragm-up');
+  d.style.stroke      = 'var(--diaphragm)';
+  d.style.strokeWidth = '5';
+
+  /* Reset lung */
+  document.getElementById('g-lungs').classList.remove('anim-lung-expand', 'anim-lung-contract');
+
+  /* FIX: Reset pressure box back to blue (inhale) colours to avoid stale exhale styling */
+  var pressureRect = document.querySelector('#g-pressure rect');
+  if (pressureRect) {
+    pressureRect.style.fill   = 'var(--blue-light)';
+    pressureRect.style.stroke = 'var(--blue)';
+  }
+  var vol = document.getElementById('pressure-vol');
+  var prs = document.getElementById('pressure-prs');
+  if (vol) { vol.style.fill = 'var(--blue-dark)'; }
+  if (prs) { prs.style.fill = 'var(--blue-dark)'; }
+}
+
+/* ══════════════════════════════════════════════════════
+   APPLY HIGHLIGHT
+══════════════════════════════════════════════════════ */
+function applyHighlight(type) {
+  resetDiagram();
+  var isEx = mode === 'exhale';
+
+  if (type === 'intercostal') {
+    op('g-intercostal', 1);
+    document.querySelectorAll('[id^="rib"]').forEach(function (r) {
+      r.style.stroke = 'var(--rib-hi)';
+    });
+
+  } else if (type === 'ribs') {
+    op('ghost-ribs',   0.75);
+    op('ghost-legend', 1);
+    document.querySelectorAll('[id^="rib"]').forEach(function (r) {
+      r.style.stroke      = isEx ? '#ff3300' : '#ff4400';
+      r.style.strokeWidth = '4.5';
+    });
+    document.getElementById('g-ribs').classList.add(isEx ? 'anim-ribs-contract' : 'anim-ribs-expand');
+
+  } else if (type === 'diaphragm') {
+    op('ghost-diaphragm', 0.8);
+    op('ghost-diaph-lbl', 1);
+    op('ghost-legend',    1);
+    var d = document.getElementById('g-diaphragm');
+    d.style.stroke      = isEx ? '#ff3300' : '#ff4400';
+    d.style.strokeWidth = '7';
+    d.classList.add(isEx ? 'anim-diaphragm-up' : 'anim-diaphragm-down');
+
+  } else if (type === 'pressure' || type === 'pressure-exhale') {
+    op('g-pressure', 1);
+    var vol = document.getElementById('pressure-vol');
+    var prs = document.getElementById('pressure-prs');
+    var pressureRect = document.querySelector('#g-pressure rect');
+    if (isEx) {
+      vol.textContent   = 'volume \u2193';
+      prs.textContent   = 'pressure \u2191';
+      vol.style.fill    = 'var(--coral-dark)';
+      prs.style.fill    = 'var(--coral-dark)';
+      if (pressureRect) {
+        pressureRect.style.fill   = 'var(--coral-light)';
+        pressureRect.style.stroke = 'var(--coral)';
+      }
+    } else {
+      vol.textContent   = 'volume \u2191';
+      prs.textContent   = 'pressure \u2193';
+      vol.style.fill    = 'var(--blue-dark)';
+      prs.style.fill    = 'var(--blue-dark)';
+      if (pressureRect) {
+        pressureRect.style.fill   = 'var(--blue-light)';
+        pressureRect.style.stroke = 'var(--blue)';
+      }
+    }
+    op('ghost-lungs',  0.38);
+    op('ghost-legend', 1);
+    op('g-lungs', isEx ? 0.2 : 0.82);
+    document.getElementById('g-lungs').classList.add(isEx ? 'anim-lung-contract' : 'anim-lung-expand');
+
+  } else if (type === 'air-in') {
+    op('g-airflow-in', 1);
+    op('ghost-lungs',  0.38);
+    op('ghost-legend', 1);
+    op('g-lungs',      0.85);
+    document.getElementById('g-lungs').classList.add('anim-lung-expand');
+
+  } else if (type === 'air-out') {
+    op('g-airflow-out', 1);
+    op('ghost-lungs',   0.38);
+    op('ghost-legend',  1);
+    /* FIX: Restored missing lines — op('g-lungs') and lung-contract class were truncated in original */
+    op('g-lungs', 0.15);
+    document.getElementById('g-lungs').classList.add('anim-lung-contract');
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+render();
+</script>
+</body>
+</html>
